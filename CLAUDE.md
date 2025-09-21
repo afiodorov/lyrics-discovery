@@ -14,8 +14,11 @@ uv run python -m src.main "song name or description"
 # With translation
 uv run python -m src.main "song name" -t "target_language"
 
-# With debug mode
-uv run python -m src.main "song name" --debug
+# With verbose logging (our app debug only)
+uv run python -m src.main "song name" -v
+
+# With very verbose logging (all libraries debug)
+uv run python -m src.main "song name" -vvv
 ```
 
 ## Development Setup
@@ -133,7 +136,7 @@ The project follows Python best practices:
 
 ## Logging and Debugging
 
-The application uses Python's logging module with two levels:
+The application uses Python's logging module with Unix-style verbose levels:
 
 ### Normal Mode (INFO level)
 ```bash
@@ -143,19 +146,38 @@ Shows:
 - Main processing steps with emojis
 - Progress through the pipeline
 - Final results
+- WARNING+ logs from all libraries
 
-### Debug Mode (DEBUG level)
+### Verbose Mode (`-v` or `--verbose`)
 ```bash
-uv run python -m src.main "song name" --debug
+uv run python -m src.main "song name" -v
 ```
 Additionally shows:
+- DEBUG logs from our application only
 - Detailed state after each node execution
 - Character counts and token usage
 - LLM finish reasons (complete vs truncated)
-- HTTP request details
-- Search result snippets
+- INFO+ logs from libraries (OpenAI, httpx, etc.)
+
+### Very Verbose Mode (`-vvv` or `--very-verbose`)
+```bash
+uv run python -m src.main "song name" -vvv
+```
+Shows everything including:
+- DEBUG logs from all libraries
+- HTTP request/response details
+- OpenAI API call traces
+- Low-level networking information
+
+### Legacy Debug Flag
+```bash
+uv run python -m src.main "song name" --debug
+```
+Equivalent to `-v` for backward compatibility.
 
 ### Logging Features
+- **Unix-style verbosity**: Follows standard `-v`, `-vv`, `-vvv` conventions
+- **Hierarchical filtering**: Libraries only show debug when explicitly requested
 - **Structured logging**: Proper log levels (INFO, DEBUG, WARNING, ERROR)
 - **Truncation detection**: Warnings when LLM responses are cut off
 - **Character tracking**: Monitor content length through the pipeline

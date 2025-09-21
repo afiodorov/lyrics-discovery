@@ -44,6 +44,11 @@ def format_lyrics_node(state: AgentState) -> dict:
             logger.warning(
                 "    - ⚠️ WARNING: Response was truncated due to token limit!"
             )
+        elif finish_reason == "content_filter":
+            logger.warning(
+                "    - ⚠️ WARNING: Response was filtered by OpenAI content policy!"
+            )
+            # With raw content fix, this should rarely happen now
         logger.debug(f"    - Formatted lyrics length: {len(formatted)} characters")
         logger.debug(f"    - Finish reason: {finish_reason}")
 
