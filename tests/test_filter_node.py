@@ -29,7 +29,6 @@ class TestFilterResultsNode:
             interspersed_lyrics="",
             curious_facts="",
             error_message="",
-            debug_mode=True,
         )
 
         # The function should now use heuristics to combine lyrics fragments
@@ -60,7 +59,6 @@ class TestFilterResultsNode:
             interspersed_lyrics="",
             curious_facts="",
             error_message="",
-            debug_mode=True,
         )
 
         # This test should trigger the heuristic path since we have newline in lyrics_indicators
@@ -101,7 +99,6 @@ class TestFilterResultsNode:
             interspersed_lyrics="",
             curious_facts="",
             error_message="",
-            debug_mode=True,
         )
 
         with patch("src.nodes.search.llm_client") as mock_llm:

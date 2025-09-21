@@ -1,13 +1,16 @@
 """Translation node for lyrics."""
 
 from ..config import llm_client
-from ..state import AgentState, print_debug_log
+from ..logging_config import get_logger
+from ..state import AgentState, log_debug_state
+
+logger = get_logger(__name__)
 
 
 def translate_lyrics_node(state: AgentState) -> dict:
     """Translates the lyrics to the target language."""
     lyrics, language = state["formatted_lyrics"], state["target_language"]
-    print(f"🈯 Translating lyrics to {language}...")
+    logger.info(f"🈯 Translating lyrics to {language}...")
     system_prompt = "You are a world-class polyglot and translator. Your task is to translate the provided song lyrics into the specified target language. Retain the poetic structure and meaning as best as possible. Do not add any commentary or introductory text, only the translated lyrics."
     user_prompt = f"Please translate the following lyrics into {language}:\n\n--- LYRICS ---\n{lyrics}\n--- END OF LYRICS ---"
     try:
@@ -18,13 +21,23 @@ def translate_lyrics_node(state: AgentState) -> dict:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.2,
-            max_tokens=4000,
+            max_tokens=8000,  # Increased from 4000
         )
         translated = response.choices[0].message.content.strip()
+
+        # Check for potential truncation
+        finish_reason = response.choices[0].finish_reason
+        if finish_reason == "length":
+            logger.warning(
+                "    - ⚠️ WARNING: Translation was truncated due to token limit!"
+            )
+        logger.debug(f"    - Original lyrics length: {len(lyrics)} characters")
+        logger.debug(f"    - Translated lyrics length: {len(translated)} characters")
+        logger.debug(f"    - Finish reason: {finish_reason}")
+
         update = {"translated_lyrics": translated}
-        print_debug_log("translate_lyrics_node", {**state, **update})
+        log_debug_state("translate_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ❌ ERROR in translate_lyrics_node: {e}")
+        logger.error(f"    - ❌ ERROR in translate_lyrics_node: {e}")
         return {"error_message": "An error occurred during translation."}

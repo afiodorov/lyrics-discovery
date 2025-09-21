@@ -1,7 +1,10 @@
 """Formatting nodes for lyrics processing."""
 
 from ..config import llm_client
-from ..state import AgentState, print_debug_log
+from ..logging_config import get_logger
+from ..state import AgentState, log_debug_state
+
+logger = get_logger(__name__)
 
 
 def format_lyrics_node(state: AgentState) -> dict:
@@ -9,7 +12,7 @@ def format_lyrics_node(state: AgentState) -> dict:
     # This node now receives a much cleaner, pre-filtered search result
     search_context = "\n\n".join(state["search_results"])
     title, artist = state["song_title"], state["song_artist"]
-    print("🤖 Asking the LLM to format the lyrics...")
+    logger.info("🤖 Asking the LLM to format the lyrics...")
     system_prompt = (
         "You are an expert assistant specializing in formatting song lyrics. Your task is to analyze the "
         "provided text and reconstruct the complete song lyrics from fragments if necessary. "
@@ -31,20 +34,29 @@ def format_lyrics_node(state: AgentState) -> dict:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.0,
-            max_tokens=4000,
+            max_tokens=8000,  # Increased from 4000
         )
         formatted = response.choices[0].message.content.strip()
+
+        # Check for potential truncation
+        finish_reason = response.choices[0].finish_reason
+        if finish_reason == "length":
+            logger.warning(
+                "    - ⚠️ WARNING: Response was truncated due to token limit!"
+            )
+        logger.debug(f"    - Formatted lyrics length: {len(formatted)} characters")
+        logger.debug(f"    - Finish reason: {finish_reason}")
+
         # Be more lenient - accept any reasonable lyrics output
         if len(formatted) < 10:
             return {
                 "error_message": "Could not extract meaningful lyrics from the search results."
             }
         update = {"formatted_lyrics": formatted}
-        print_debug_log("format_lyrics_node", {**state, **update})
+        log_debug_state("format_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ❌ ERROR in format_lyrics_node: {e}")
+        logger.error(f"    - ❌ ERROR in format_lyrics_node: {e}")
         return {"error_message": "An error occurred while formatting lyrics."}
 
 
@@ -55,7 +67,7 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
         state["translated_lyrics"],
         state["target_language"],
     )
-    print("🎨 Combining original and translated lyrics...")
+    logger.info("🎨 Combining original and translated lyrics...")
     system_prompt = (
         "You are a text formatting expert. Your task is to combine original song lyrics with their translation. "
         "For each line from the original, add the corresponding translated line immediately below it. "
@@ -77,13 +89,26 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.0,
-            max_tokens=4095,
+            max_tokens=12000,  # Increased from 4095 (needs more space for interspersed)
         )
         interspersed = response.choices[0].message.content.strip()
+
+        # Check for potential truncation
+        finish_reason = response.choices[0].finish_reason
+        if finish_reason == "length":
+            logger.warning(
+                "    - ⚠️ WARNING: Interspersed lyrics were truncated due to token limit!"
+            )
+        logger.debug(f"    - Original lyrics length: {len(original)} characters")
+        logger.debug(f"    - Translated lyrics length: {len(translated)} characters")
+        logger.debug(
+            f"    - Interspersed lyrics length: {len(interspersed)} characters"
+        )
+        logger.debug(f"    - Finish reason: {finish_reason}")
+
         update = {"interspersed_lyrics": interspersed}
-        print_debug_log("intersperse_lyrics_node", {**state, **update})
+        log_debug_state("intersperse_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ❌ ERROR in intersperse_lyrics_node: {e}")
+        logger.error(f"    - ❌ ERROR in intersperse_lyrics_node: {e}")
         return {"error_message": "An error occurred during final formatting."}

@@ -3,24 +3,26 @@
 import wikipedia
 
 from ..config import llm_client, tavily_client
-from ..state import AgentState, print_debug_log
+from ..logging_config import get_logger
+from ..state import AgentState, log_debug_state
+
+logger = get_logger(__name__)
 
 
 def find_curious_facts_node(state: AgentState) -> dict:
     """Searches for curious facts, first on Wikipedia, then via web search as a fallback."""
     title, artist = state["song_title"], state["song_artist"]
-    print(f"🧐 Searching for curious facts about '{title}'...")
+    logger.info(f"🧐 Searching for curious facts about '{title}'...")
     facts_content = None
 
     try:
         search_query = f"{title} (song)" + (f" ({artist} song)" if artist else "")
         page = wikipedia.page(search_query, auto_suggest=True, redirect=True)
         facts_content = page.content
-        print("    - Found Wikipedia page, summarizing...")
+        logger.info("    - Found Wikipedia page, summarizing...")
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ⚠️ Wikipedia search failed with error: {e}")
-        print(
+        logger.error(f"    - ⚠️ Wikipedia search failed with error: {e}")
+        logger.info(
             "    - Could not find a specific Wikipedia page. Trying web search as a fallback."
         )
         facts_content = None
@@ -36,11 +38,10 @@ def find_curious_facts_node(state: AgentState) -> dict:
             facts_content = "\n\n".join(
                 [result["content"] for result in response["results"]]
             )
-            print("    - Found web search results, summarizing...")
+            logger.info("    - Found web search results, summarizing...")
         except Exception as e:
-            if state.get("debug_mode"):
-                print(f"    - ⚠️ Tavily facts search failed with error: {e}")
-            print(f"    - Web search for facts also failed.")
+            logger.error(f"    - ⚠️ Tavily facts search failed with error: {e}")
+            logger.warning(f"    - Web search for facts also failed.")
             return {}
 
     if not facts_content:
@@ -65,10 +66,9 @@ def find_curious_facts_node(state: AgentState) -> dict:
         if "No specific facts found" in facts:
             return {}
         update = {"curious_facts": facts}
-        print_debug_log("find_curious_facts_node", {**state, **update})
+        log_debug_state("find_curious_facts_node", {**state, **update})
         return update
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ⚠️ LLM fact extraction failed with error: {e}")
-        print(f"    - An error occurred during LLM fact extraction.")
+        logger.error(f"    - ⚠️ LLM fact extraction failed with error: {e}")
+        logger.warning("    - An error occurred during LLM fact extraction.")
         return {}

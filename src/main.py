@@ -4,6 +4,9 @@ import argparse
 
 from .config import OPENAI_API_KEY, TAVILY_API_KEY
 from .graph import create_workflow
+from .logging_config import get_logger, setup_logging
+
+logger = get_logger(__name__)
 
 
 def display_results(final_state: dict) -> None:
@@ -18,14 +21,14 @@ def display_results(final_state: dict) -> None:
             final_state["song_artist"],
             final_state["target_language"],
         )
-        print(
-            f"🎶 Lyrics for '{title}'{f' by {artist}' if artist else ''} (with {lang} translation)"
-        )
+        artist_info = f" by {artist}" if artist else ""
+        print(f"🎶 Lyrics for '{title}'{artist_info} (with {lang} translation)")
         print("=" * 50 + "\n")
         print(final_state["interspersed_lyrics"])
     elif final_state.get("formatted_lyrics"):
         title, artist = final_state["song_title"], final_state["song_artist"]
-        print(f"🎶 Lyrics for '{title}'{f' by {artist}' if artist else ''}")
+        artist_info = f" by {artist}" if artist else ""
+        print(f"🎶 Lyrics for '{title}'{artist_info}")
         print("=" * 50 + "\n")
         print(final_state["formatted_lyrics"])
     else:
@@ -51,15 +54,39 @@ def main():
     parser.add_argument(
         "-t", "--translate", type=str, help="Optional: Target language for translation."
     )
+    # Verbose options following Unix conventions
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging (debug output from our application only)",
+    )
+    parser.add_argument(
+        "-vvv",
+        "--very-verbose",
+        action="store_true",
+        help="Enable very verbose logging (debug output from all libraries including OpenAI, httpx, etc.)",
+    )
+    # Legacy compatibility
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Enable debug logging to inspect agent state.",
+        help="Legacy alias for --verbose (deprecated, use -v instead)",
     )
     args = parser.parse_args()
 
+    # Setup logging based on verbosity level
+    if args.very_verbose:
+        setup_logging(verbose_level="very_verbose")
+    elif args.verbose or args.debug:  # Include legacy --debug flag
+        setup_logging(verbose_level="verbose")
+        if args.debug:
+            logger.warning("--debug is deprecated, use -v/--verbose instead")
+    else:
+        setup_logging(verbose_level="normal")
+
     if not TAVILY_API_KEY or not OPENAI_API_KEY:
-        print(
+        logger.error(
             "❌ Error: TAVILY_API_KEY and OPENAI_API_KEY environment variables must be set."
         )
         return
@@ -68,11 +95,10 @@ def main():
     workflow = create_workflow()
     app = workflow.compile()
 
-    # Set initial state
+    # Set initial state (no more debug_mode needed)
     initial_state = {
         "user_query": args.query,
         "target_language": args.translate,
-        "debug_mode": args.debug,
     }
 
     # Run the agent

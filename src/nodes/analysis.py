@@ -3,13 +3,16 @@
 import json
 
 from ..config import llm_client
-from ..state import AgentState, print_debug_log
+from ..logging_config import get_logger
+from ..state import AgentState, log_debug_state
+
+logger = get_logger(__name__)
 
 
 def analyze_query_node(state: AgentState) -> dict:
     """Analyzes the user's query to determine the actual song title and artist."""
     user_query = state["user_query"]
-    print(f"🤔 Analyzing your request: '{user_query}'...")
+    logger.info(f"🤔 Analyzing your request: '{user_query}'...")
     system_prompt = (
         "You are an expert musicologist. Your task is to analyze a user's query about a song and "
         "determine the precise song title and artist. Respond ONLY with a single, valid JSON object "
@@ -29,16 +32,16 @@ def analyze_query_node(state: AgentState) -> dict:
         )
         result = json.loads(response.choices[0].message.content)
         if result.get("title") != user_query:
-            print(
-                f"🧠 I believe you're looking for '{result.get('title')}'{f' by {result.get("artist")}' if result.get('artist') else ''}."
+            artist_info = f" by {result.get('artist')}" if result.get("artist") else ""
+            logger.info(
+                f"🧠 I believe you're looking for '{result.get('title')}'{artist_info}."
             )
         update = {
             "song_title": result.get("title"),
             "song_artist": result.get("artist"),
         }
-        print_debug_log("analyze_query_node", {**state, **update})
+        log_debug_state("analyze_query_node", {**state, **update})
         return update
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ❌ ERROR in analyze_query_node: {e}")
+        logger.error(f"ERROR in analyze_query_node: {e}")
         return {"error_message": "An error occurred during query analysis."}

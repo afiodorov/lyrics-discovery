@@ -1,15 +1,17 @@
 """Search and filtering nodes for finding lyrics."""
 
 from ..config import llm_client, tavily_client
-from ..state import AgentState, print_debug_log
+from ..logging_config import get_logger
+from ..state import AgentState, log_debug_state
+
+logger = get_logger(__name__)
 
 
 def search_lyrics_node(state: AgentState) -> dict:
     """Searches for lyrics using the Tavily Search API."""
     title, artist = state["song_title"], state["song_artist"]
-    print(
-        f"🔎 Searching for lyrics for '{title}'{f' by {artist}' if artist else ''}..."
-    )
+    artist_info = f" by {artist}" if artist else ""
+    logger.info(f"🔎 Searching for lyrics for '{title}'{artist_info}...")
     # More specific query to get cleaner, lyrics-focused results
     query = f"full complete song lyrics for '{title}'" + (
         f" by {artist}" if artist else ""
@@ -20,11 +22,10 @@ def search_lyrics_node(state: AgentState) -> dict:
         )
         content = [result["content"] for result in response["results"]]
         update = {"search_results": content}
-        print_debug_log("search_lyrics_node", {**state, **update})
+        log_debug_state("search_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ❌ ERROR in search_lyrics_node: {e}")
+        logger.error(f"    - ❌ ERROR in search_lyrics_node: {e}")
         return {"error_message": "An error occurred during the web search."}
 
 
@@ -34,7 +35,7 @@ def filter_results_node(state: AgentState) -> dict:
     Combines fragmented lyrics when necessary.
     """
     search_results = state["search_results"]
-    print("🔍 Filtering search results to find the best source...")
+    logger.info("🔍 Filtering search results to find the best source...")
 
     # First, check if any result contains what looks like lyrics
     # This is a heuristic to avoid rejecting partial but valid lyrics
@@ -79,7 +80,7 @@ def filter_results_node(state: AgentState) -> dict:
             # Merge the results for better context
             merged_content = "\n\n---\n\n".join(combined_results)
             update = {"search_results": [merged_content]}
-            print_debug_log("filter_results_node", {**state, **update})
+            log_debug_state("filter_results_node", {**state, **update})
             return update
 
     system_prompt = (
@@ -117,16 +118,15 @@ def filter_results_node(state: AgentState) -> dict:
             # Fallback: just combine all results and let the format node handle it
             combined_all = "\n\n---\n\n".join(search_results)
             update = {"search_results": [combined_all]}
-            print_debug_log("filter_results_node (fallback)", {**state, **update})
+            log_debug_state("filter_results_node (fallback)", {**state, **update})
             return update
 
         # Update the search_results to contain only the single best one
         update = {"search_results": [best_result]}
-        print_debug_log("filter_results_node", {**state, **update})
+        log_debug_state("filter_results_node", {**state, **update})
         return update
     except Exception as e:
-        if state.get("debug_mode"):
-            print(f"    - ❌ ERROR in filter_results_node: {e}")
+        logger.error(f"    - ❌ ERROR in filter_results_node: {e}")
         # On error, pass through all results combined
         combined_all = "\n\n---\n\n".join(search_results)
         return {"search_results": [combined_all]}

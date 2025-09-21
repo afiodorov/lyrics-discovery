@@ -131,17 +131,36 @@ The project follows Python best practices:
 - **graph.py**: Graph construction separate from business logic
 - **main.py**: Clean CLI interface with result display
 
-## Debugging
-Use the `--debug` flag to see detailed state transitions:
+## Logging and Debugging
+
+The application uses Python's logging module with two levels:
+
+### Normal Mode (INFO level)
+```bash
+uv run python -m src.main "song name"
+```
+Shows:
+- Main processing steps with emojis
+- Progress through the pipeline
+- Final results
+
+### Debug Mode (DEBUG level)
 ```bash
 uv run python -m src.main "song name" --debug
 ```
+Additionally shows:
+- Detailed state after each node execution
+- Character counts and token usage
+- LLM finish reasons (complete vs truncated)
+- HTTP request details
+- Search result snippets
 
-This shows:
-- State after each node execution
-- Search results snippets
-- Error messages with stack traces
-- Node transitions and decisions
+### Logging Features
+- **Structured logging**: Proper log levels (INFO, DEBUG, WARNING, ERROR)
+- **Truncation detection**: Warnings when LLM responses are cut off
+- **Character tracking**: Monitor content length through the pipeline
+- **Module-specific loggers**: Each component has its own logger
+- **Clean output**: User-facing results separate from debug info
 
 ## Future Improvements
 - Add caching for repeated searches
