@@ -65,6 +65,11 @@ def find_curious_facts_node(state: AgentState) -> dict:
         facts = response.choices[0].message.content.strip()
         if "No specific facts found" in facts:
             return {}
+
+        # Translate facts if target language is specified
+        if state.get("target_language"):
+            facts = _translate_facts(facts, state["target_language"], title)
+
         update = {"curious_facts": facts}
         log_debug_state("find_curious_facts_node", {**state, **update})
         return update
@@ -72,3 +77,33 @@ def find_curious_facts_node(state: AgentState) -> dict:
         logger.error(f"    - ⚠️ LLM fact extraction failed with error: {e}")
         logger.warning("    - An error occurred during LLM fact extraction.")
         return {}
+
+
+def _translate_facts(facts: str, target_language: str, title: str) -> str:
+    """Translate curious facts to the target language."""
+    logger.info(f"    - Translating facts to {target_language}...")
+
+    try:
+        system_prompt = (
+            f"You are a professional translator. Translate the following facts about '{title}' "
+            f"to {target_language}. Maintain the bullet list format and factual accuracy. "
+            "Only translate the text, keep any formatting like bullet points or dashes."
+        )
+
+        response = llm_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": facts},
+            ],
+            temperature=0.0,
+        )
+
+        translated_facts = response.choices[0].message.content.strip()
+        logger.debug(f"    - Facts translated successfully")
+        return translated_facts
+
+    except Exception as e:
+        logger.warning(f"    - Could not translate facts: {e}")
+        # Return original facts if translation fails
+        return facts

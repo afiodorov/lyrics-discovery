@@ -21,7 +21,7 @@ def search_lyrics_node(state: AgentState) -> dict:
             query=query,
             search_depth="advanced",
             max_results=5,
-            include_raw_content="text"  # Get full page content instead of snippets
+            include_raw_content="text",  # Get full page content instead of snippets
         )
         # Prefer raw_content over content snippets when available
         content = []
@@ -29,11 +29,15 @@ def search_lyrics_node(state: AgentState) -> dict:
             if result.get("raw_content"):
                 # Use full page content
                 content.append(result["raw_content"])
-                logger.debug(f"    - Using raw content ({len(result['raw_content'])} chars) from {result.get('url', 'unknown')}")
+                logger.debug(
+                    f"    - Using raw content ({len(result['raw_content'])} chars) from {result.get('url', 'unknown')}"
+                )
             else:
                 # Fallback to snippet
                 content.append(result["content"])
-                logger.debug(f"    - Using content snippet ({len(result['content'])} chars) from {result.get('url', 'unknown')}")
+                logger.debug(
+                    f"    - Using content snippet ({len(result['content'])} chars) from {result.get('url', 'unknown')}"
+                )
         update = {"search_results": content}
         log_debug_state("search_lyrics_node", {**state, **update})
         return update
