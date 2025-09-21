@@ -69,6 +69,14 @@ def find_curious_facts_node(state: AgentState) -> dict:
         # Translate facts if target language is specified
         if state.get("target_language"):
             facts = _translate_facts(facts, state["target_language"], title)
+        else:
+            # If no translation requested, detect song language and translate facts to match
+            detected_lang = _detect_song_language(state, title, artist)
+            if detected_lang and detected_lang.lower() not in ["en", "english"]:
+                logger.info(
+                    f"    - Detected song is in {detected_lang}, translating facts to match..."
+                )
+                facts = _translate_facts(facts, detected_lang, title)
 
         update = {"curious_facts": facts}
         log_debug_state("find_curious_facts_node", {**state, **update})
@@ -77,6 +85,47 @@ def find_curious_facts_node(state: AgentState) -> dict:
         logger.error(f"    - ⚠️ LLM fact extraction failed with error: {e}")
         logger.warning("    - An error occurred during LLM fact extraction.")
         return {}
+
+
+def _detect_song_language(state: AgentState, title: str, artist: str) -> str:
+    """Detect the language of the song based on its lyrics or metadata."""
+    # Try to detect from formatted lyrics if available
+    lyrics_snippet = (
+        state.get("formatted_lyrics", "")[:500] if state.get("formatted_lyrics") else ""
+    )
+
+    if not lyrics_snippet:
+        # No lyrics to analyze
+        return None
+
+    try:
+        # Use LLM to detect language
+        prompt = (
+            "Analyze this song text and identify the language. "
+            "Respond with ONLY the language name (e.g., 'Spanish', 'Portuguese', 'Italian', 'French'). "
+            "If you cannot determine or it's English, respond with 'English'."
+        )
+
+        response = llm_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": prompt},
+                {
+                    "role": "user",
+                    "content": f"Song: '{title}' by {artist}\n\nLyrics excerpt:\n{lyrics_snippet}",
+                },
+            ],
+            temperature=0.0,
+            max_tokens=50,
+        )
+
+        detected = response.choices[0].message.content.strip()
+        logger.debug(f"    - Detected language: {detected}")
+        return detected
+
+    except Exception as e:
+        logger.warning(f"    - Could not detect language: {e}")
+        return None
 
 
 def _translate_facts(facts: str, target_language: str, title: str) -> str:
