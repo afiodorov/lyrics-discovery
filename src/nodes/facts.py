@@ -86,7 +86,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
                 facts = _translate_facts(facts, detected_lang, title)
 
         update = {"curious_facts": facts}
-        log_debug_state("find_curious_facts_node",  state | update)
+        log_debug_state("find_curious_facts_node", state | update)
         return update
     except Exception as e:
         logger.exception(f"    - ⚠️ LLM fact extraction failed with error: {e}")

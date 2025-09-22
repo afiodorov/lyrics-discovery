@@ -1,6 +1,6 @@
 """Formatting nodes for lyrics processing."""
 
-from ..config import llm_client
+from ..config import deepseek_client
 from ..logging_config import get_logger
 from ..state import AgentState, log_debug_state
 
@@ -27,16 +27,16 @@ def format_lyrics_node(state: AgentState) -> dict:
         "Format the lyrics with proper line breaks and stanza separation."
     )
     try:
-        response = llm_client.chat.completions.create(
-            model="gpt-4o",
+        response = deepseek_client.chat.completions.create(
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.0,
-            max_tokens=8000,  # Increased from 4000
+            max_tokens=8192,  # Increased from 4000
         )
-        formatted = response.choices[0].message.content.strip()
+        formatted = (response.choices[0].message.content or "").strip()
 
         # Check for potential truncation
         finish_reason = response.choices[0].finish_reason
@@ -45,10 +45,8 @@ def format_lyrics_node(state: AgentState) -> dict:
                 "    - ⚠️ WARNING: Response was truncated due to token limit!"
             )
         elif finish_reason == "content_filter":
-            logger.warning(
-                "    - ⚠️ WARNING: Response was filtered by OpenAI content policy!"
-            )
-            # With raw content fix, this should rarely happen now
+            logger.warning("    - ⚠️ WARNING: Response was filtered by content policy!")
+            # Should rarely happen with DeepSeek
         logger.debug(f"    - Formatted lyrics length: {len(formatted)} characters")
         logger.debug(f"    - Finish reason: {finish_reason}")
 
@@ -93,8 +91,8 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
         "Combine them now."
     )
     try:
-        response = llm_client.chat.completions.create(
-            model="gpt-4o",
+        response = deepseek_client.chat.completions.create(
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -102,7 +100,7 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
             temperature=0.0,
             max_tokens=12000,  # Increased from 4095 (needs more space for interspersed)
         )
-        interspersed = response.choices[0].message.content.strip()
+        interspersed = (response.choices[0].message.content or "").strip()
 
         # Check for potential truncation
         finish_reason = response.choices[0].finish_reason

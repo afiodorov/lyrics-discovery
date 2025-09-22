@@ -2,7 +2,7 @@
 
 import json
 
-from ..config import llm_client
+from ..config import deepseek_client
 from ..logging_config import get_logger
 from ..state import AgentState, log_debug_state
 
@@ -21,8 +21,8 @@ def analyze_query_node(state: AgentState) -> dict:
     )
     user_prompt = f"Analyze this query: '{user_query}'"
     try:
-        response = llm_client.chat.completions.create(
-            model="gpt-4o",
+        response = deepseek_client.chat.completions.create(
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

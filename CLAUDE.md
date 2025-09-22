@@ -27,14 +27,19 @@ uv run python -m src.main "song name" -vvv
 The project uses `ruff` for code formatting and linting:
 
 ```bash
-# Format code
-uv run ruff format src/ tests/
+# Format code and fix imports (recommended)
+make format
 
-# Fix import sorting
-uv run ruff check --select I --fix src/ tests/
+# Individual commands
+make imports  # Fix import sorting only
+make fmt      # Format code only
+make lint     # Run linting (no fixes)
+make clean    # Clean cache files
 
-# Run linting
-uv run ruff check src/ tests/
+# Manual commands (if needed)
+uv run ruff format .
+uv run ruff check --select I --fix .
+uv run ruff check .
 ```
 
 ### Testing
@@ -103,7 +108,8 @@ Located in `tests/test_filter_node.py`:
 ## Environment Variables
 Required environment variables:
 - `TAVILY_API_KEY`: API key for Tavily search
-- `OPENAI_API_KEY`: API key for OpenAI LLM
+- `DEEPSEEK_API_KEY`: API key for DeepSeek LLM (used for lyrics processing)
+- `OPENAI_API_KEY`: API key for OpenAI LLM (used for facts discovery)
 
 ## Common Issues and Solutions
 

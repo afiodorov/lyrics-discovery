@@ -1,6 +1,6 @@
 """Translation node for lyrics."""
 
-from ..config import llm_client
+from ..config import deepseek_client
 from ..logging_config import get_logger
 from ..state import AgentState, log_debug_state
 
@@ -18,8 +18,8 @@ def translate_lyrics_node(state: AgentState) -> dict:
     system_prompt = "You are a world-class polyglot and translator. Your task is to translate the provided song lyrics into the specified target language. Retain the poetic structure and meaning as best as possible. Do not add any commentary or introductory text, only the translated lyrics."
     user_prompt = f"Please translate the following lyrics into {language}:\n\n--- LYRICS ---\n{lyrics}\n--- END OF LYRICS ---"
     try:
-        response = llm_client.chat.completions.create(
-            model="gpt-4o",
+        response = deepseek_client.chat.completions.create(
+            model="deepseek-chat",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
