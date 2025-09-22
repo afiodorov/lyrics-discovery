@@ -260,7 +260,7 @@ def create_simple_interface():
             fn=search_lyrics_simple,
             inputs=[query_input, translate_input],
             outputs=[progress_output, lyrics_output, facts_output],
-            show_progress=False,  # Disable default progress, use our custom streaming
+            show_progress="full",
         )
 
     return demo
