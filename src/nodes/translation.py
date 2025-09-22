@@ -43,5 +43,5 @@ def translate_lyrics_node(state: AgentState) -> dict:
         log_debug_state("translate_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        logger.error(f"    - ❌ ERROR in translate_lyrics_node: {e}")
+        logger.exception(f"    - ❌ ERROR in translate_lyrics_node: {e}")
         return {"error_message": "An error occurred during translation."}

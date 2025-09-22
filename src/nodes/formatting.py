@@ -61,7 +61,7 @@ def format_lyrics_node(state: AgentState) -> dict:
         log_debug_state("format_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        logger.error(f"    - ❌ ERROR in format_lyrics_node: {e}")
+        logger.exception(f"    - ❌ ERROR in format_lyrics_node: {e}")
         return {"error_message": "An error occurred while formatting lyrics."}
 
 
@@ -121,5 +121,5 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
         log_debug_state("intersperse_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        logger.error(f"    - ❌ ERROR in intersperse_lyrics_node: {e}")
+        logger.exception(f"    - ❌ ERROR in intersperse_lyrics_node: {e}")
         return {"error_message": "An error occurred during final formatting."}

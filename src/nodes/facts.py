@@ -21,7 +21,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
         facts_content = page.content
         logger.info("    - Found Wikipedia page, summarizing...")
     except Exception as e:
-        logger.error(f"    - ⚠️ Wikipedia search failed with error: {e}")
+        logger.exception(f"    - ⚠️ Wikipedia search failed with error: {e}")
         logger.info(
             "    - Could not find a specific Wikipedia page. Trying web search as a fallback."
         )
@@ -47,7 +47,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
                 facts_content = None
             logger.info("    - Found web search results, summarizing...")
         except Exception as e:
-            logger.error(f"    - ⚠️ Tavily facts search failed with error: {e}")
+            logger.exception(f"    - ⚠️ Tavily facts search failed with error: {e}")
             logger.warning("    - Web search for facts also failed.")
             return {}
 
@@ -89,7 +89,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
         log_debug_state("find_curious_facts_node", {**state, **update})
         return update
     except Exception as e:
-        logger.error(f"    - ⚠️ LLM fact extraction failed with error: {e}")
+        logger.exception(f"    - ⚠️ LLM fact extraction failed with error: {e}")
         logger.warning("    - An error occurred during LLM fact extraction.")
         return {}
 

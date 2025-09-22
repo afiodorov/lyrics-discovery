@@ -43,5 +43,5 @@ def analyze_query_node(state: AgentState) -> dict:
         log_debug_state("analyze_query_node", {**state, **update})
         return update
     except Exception as e:
-        logger.error(f"ERROR in analyze_query_node: {e}")
+        logger.exception(f"ERROR in analyze_query_node: {e}")
         return {"error_message": "An error occurred during query analysis."}

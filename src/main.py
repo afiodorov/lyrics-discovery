@@ -86,7 +86,7 @@ def main():
         setup_logging(verbose_level="normal")
 
     if not TAVILY_API_KEY or not OPENAI_API_KEY:
-        logger.error(
+        logger.exception(
             "❌ Error: TAVILY_API_KEY and OPENAI_API_KEY environment variables must be set."
         )
         return

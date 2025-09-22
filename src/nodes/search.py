@@ -42,7 +42,7 @@ def search_lyrics_node(state: AgentState) -> dict:
         log_debug_state("search_lyrics_node", {**state, **update})
         return update
     except Exception as e:
-        logger.error(f"    - ❌ ERROR in search_lyrics_node: {e}")
+        logger.exception(f"    - ❌ ERROR in search_lyrics_node: {e}")
         return {"error_message": "An error occurred during the web search."}
 
 
@@ -143,7 +143,7 @@ def filter_results_node(state: AgentState) -> dict:
         log_debug_state("filter_results_node", {**state, **update})
         return update
     except Exception as e:
-        logger.error(f"    - ❌ ERROR in filter_results_node: {e}")
+        logger.exception(f"    - ❌ ERROR in filter_results_node: {e}")
         # On error, pass through all results combined
         combined_all = "\n\n---\n\n".join(search_results)
         return {"search_results": [combined_all]}
