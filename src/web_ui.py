@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -271,6 +272,6 @@ if __name__ == "__main__":
     demo = create_simple_interface()
     demo.launch(
         server_name="0.0.0.0",  # Allow external access
-        server_port=7860,
-        share=True,  # Create a public URL
+        server_port=int(os.environ.get("PORT", 7860)),  # Use Railway's PORT
+        share=False,  # Disable share when deployed
     )
