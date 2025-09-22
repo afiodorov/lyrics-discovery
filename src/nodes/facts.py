@@ -69,7 +69,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
             ],
             temperature=0.0,
         )
-        facts = response.choices[0].message.content.strip()
+        facts = (response.choices[0].message.content or "").strip()
         if "No specific facts found" in facts:
             return {}
 
@@ -86,7 +86,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
                 facts = _translate_facts(facts, detected_lang, title)
 
         update = {"curious_facts": facts}
-        log_debug_state("find_curious_facts_node", {**state, **update})
+        log_debug_state("find_curious_facts_node",  state | update)
         return update
     except Exception as e:
         logger.exception(f"    - ⚠️ LLM fact extraction failed with error: {e}")
@@ -94,7 +94,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
         return {}
 
 
-def _detect_song_language(state: AgentState, title: str, artist: str) -> str:
+def _detect_song_language(state: AgentState, title: str, artist: str) -> str | None:
     """Detect the language of the song based on its lyrics or metadata."""
     # Try to detect from formatted lyrics if available
     lyrics_snippet = (
@@ -126,12 +126,12 @@ def _detect_song_language(state: AgentState, title: str, artist: str) -> str:
             max_tokens=50,
         )
 
-        detected = response.choices[0].message.content.strip()
+        detected = (response.choices[0].message.content or "").strip()
         logger.debug(f"    - Detected language: {detected}")
         return detected
 
     except Exception as e:
-        logger.warning(f"    - Could not detect language: {e}")
+        logger.error(f"    - Could not detect language: {e}")
         return None
 
 
@@ -155,11 +155,11 @@ def _translate_facts(facts: str, target_language: str, title: str) -> str:
             temperature=0.0,
         )
 
-        translated_facts = response.choices[0].message.content.strip()
+        translated_facts = (response.choices[0].message.content or "").strip()
         logger.debug("    - Facts translated successfully")
         return translated_facts
 
     except Exception as e:
-        logger.warning(f"    - Could not translate facts: {e}")
+        logger.exception(f"    - Could not translate facts: {e}")
         # Return original facts if translation fails
         return facts
