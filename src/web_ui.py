@@ -2,9 +2,8 @@
 
 import hashlib
 import json
-import time
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import gradio as gr
 
@@ -256,7 +255,7 @@ def create_simple_interface():
         )
 
         # Set up the search action with streaming
-        search_event = search_button.click(
+        search_button.click(
             fn=search_lyrics_simple,
             inputs=[query_input, translate_input],
             outputs=[progress_output, lyrics_output, facts_output],

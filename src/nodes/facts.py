@@ -41,7 +41,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
             logger.info("    - Found web search results, summarizing...")
         except Exception as e:
             logger.error(f"    - ⚠️ Tavily facts search failed with error: {e}")
-            logger.warning(f"    - Web search for facts also failed.")
+            logger.warning("    - Web search for facts also failed.")
             return {}
 
     if not facts_content:
@@ -149,7 +149,7 @@ def _translate_facts(facts: str, target_language: str, title: str) -> str:
         )
 
         translated_facts = response.choices[0].message.content.strip()
-        logger.debug(f"    - Facts translated successfully")
+        logger.debug("    - Facts translated successfully")
         return translated_facts
 
     except Exception as e:

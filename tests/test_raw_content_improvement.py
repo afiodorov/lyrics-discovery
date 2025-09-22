@@ -1,8 +1,7 @@
 """Tests for the raw content improvement that fixes truncation issues."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 
 from src.nodes.search import search_lyrics_node
 from src.state import AgentState

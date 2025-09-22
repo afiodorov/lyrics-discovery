@@ -1,6 +1,5 @@
 from unittest.mock import Mock, patch
 
-import pytest
 
 from src.nodes.search import filter_results_node
 from src.state import AgentState
