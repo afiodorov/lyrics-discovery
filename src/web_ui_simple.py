@@ -1,7 +1,8 @@
-"""Gradio web UI for the lyrics search application."""
+"""Simple working Gradio web UI with proper streaming."""
 
 import hashlib
 import json
+import time
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -52,11 +53,15 @@ def save_to_cache(query: str, language: Optional[str], results: dict):
         logger.error(f"Failed to save cache: {e}")
 
 
-def search_lyrics(query: str, translate_to: str):
+def search_lyrics_simple(query: str, translate_to: str):
     """
-    Generator function that yields progressive updates for Gradio streaming.
+    Simple generator function that works with Gradio streaming.
     Yields: (progress_log, lyrics_output, facts_output)
     """
+    logger.info(
+        f"WEB UI FUNCTION CALLED: query='{query}', translate_to='{translate_to}'"
+    )
+
     if not query.strip():
         yield "Please enter a song name or description.", "", ""
         return
@@ -65,51 +70,61 @@ def search_lyrics(query: str, translate_to: str):
     target_lang = translate_to.strip() if translate_to.strip() else None
     cached = load_from_cache(query, target_lang)
     if cached:
+        logger.info(f"WEB UI: Found cached result for '{query}' - returning from cache")
         yield cached["progress"], cached["lyrics"], cached["facts"]
         return
+    logger.info(f"WEB UI: No cache found for '{query}' - proceeding with live search")
 
-    # Initialize progress log
+    # Initialize
     progress_log = []
-
-    # Create initial state
-    initial_state = AgentState(
-        user_query=query,
-        target_language=target_lang,
-        song_title="",
-        song_artist="",
-        search_results=[],
-        formatted_lyrics="",
-        translated_lyrics="",
-        interspersed_lyrics="",
-        curious_facts="",
-        error_message="",
-    )
-
-    # Create and run the graph
-    graph = create_workflow()
-    app = graph.compile()
+    current_lyrics = ""
+    current_facts = ""
 
     try:
-        # Initial yield to start the stream
+        logger.info(
+            f"WEB UI: Starting search for '{query}' with translation to '{target_lang}'"
+        )
+
+        # Step 1: Start
         progress_log.append("🤔 Analyzing your request...")
-        yield "\n".join(progress_log), "", ""
+        yield "\n".join(progress_log), current_lyrics, current_facts
+
+        # Create state
+        initial_state = AgentState(
+            user_query=query,
+            target_language=target_lang,
+            song_title="",
+            song_artist="",
+            search_results=[],
+            formatted_lyrics="",
+            translated_lyrics="",
+            interspersed_lyrics="",
+            curious_facts="",
+            error_message="",
+        )
+
+        # Create and run the graph
+        graph = create_workflow()
+        app = graph.compile()
 
         # Track accumulated state
-        current_lyrics = ""
-        current_facts = ""
         result_state = {}
 
-        # Stream through the graph execution once
+        # Stream through the graph execution
+        logger.info(f"WEB UI: About to start streaming...")
+        chunk_count = 0
         for chunk in app.stream(initial_state):
+            chunk_count += 1
+            logger.info(f"WEB UI: Got chunk {chunk_count}: {list(chunk.keys())}")
             for node_name, node_output in chunk.items():
                 # Update accumulated result state
                 result_state.update(node_output)
                 logger.info(
-                    f"Web UI: Processing {node_name} with keys: {list(node_output.keys())}"
+                    f"WEB UI: Processing {node_name} with keys: {list(node_output.keys())}"
                 )
 
-                # Handle each node type and always yield
-                if node_name == "analyze_query_node":
+                # Handle each node type (using correct node names from graph.py)
+                if node_name == "analyze_query":
                     if node_output.get("song_title"):
                         title = node_output.get("song_title", "")
                         artist = node_output.get("song_artist", "")
@@ -117,18 +132,18 @@ def search_lyrics(query: str, translate_to: str):
                         progress_log.append(f"🧠 Identified: '{title}'{artist_info}")
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
-                elif node_name == "search_lyrics_node":
+                elif node_name == "search_lyrics":
                     if node_output.get("search_results"):
                         progress_log.append(
                             f"🔎 Found {len(node_output['search_results'])} sources"
                         )
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
-                elif node_name == "filter_results_node":
+                elif node_name == "filter_results":
                     progress_log.append("🔍 Filtered to best source")
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
-                elif node_name == "format_lyrics_node":
+                elif node_name == "format_lyrics":
                     if node_output.get("formatted_lyrics"):
                         progress_log.append(
                             f"🤖 Formatted lyrics ({len(node_output['formatted_lyrics'])} chars)"
@@ -136,12 +151,12 @@ def search_lyrics(query: str, translate_to: str):
                         current_lyrics = node_output["formatted_lyrics"]
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
-                elif node_name == "translate_lyrics_node":
+                elif node_name == "translate_lyrics":
                     if target_lang:
                         progress_log.append(f"🈯 Translated to {target_lang}")
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
-                elif node_name == "intersperse_lyrics_node":
+                elif node_name == "intersperse_lyrics":
                     if target_lang and node_output.get("interspersed_lyrics"):
                         progress_log.append(
                             "🎨 Combined original and translated lyrics"
@@ -149,17 +164,10 @@ def search_lyrics(query: str, translate_to: str):
                         current_lyrics = node_output["interspersed_lyrics"]
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
-                elif node_name == "find_curious_facts_node":
+                elif node_name == "find_curious_facts":
                     if node_output.get("curious_facts"):
                         progress_log.append("🧐 Found curious facts")
                         current_facts = node_output["curious_facts"]
-                    yield "\n".join(progress_log), current_lyrics, current_facts
-
-                else:
-                    # Any other node - just yield current state
-                    logger.info(
-                        f"Web UI: Unknown node {node_name}, yielding current state..."
-                    )
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
         # Check for errors
@@ -193,14 +201,15 @@ def search_lyrics(query: str, translate_to: str):
         yield final_progress, current_lyrics, current_facts
 
     except Exception as e:
+        logger.error(f"WEB UI: Error in search_lyrics_simple: {e}")
         error_msg = f"❌ Error: {str(e)}"
         progress_log.append(error_msg)
-        yield "\n".join(progress_log), "", ""
+        yield "\n".join(progress_log), current_lyrics, current_facts
 
 
 # Create the Gradio interface
-def create_interface():
-    """Create the Gradio interface."""
+def create_simple_interface():
+    """Create the simple Gradio interface."""
 
     with gr.Blocks(title="🎵 Lyrics Search & Translate") as demo:
         gr.Markdown(
@@ -260,11 +269,12 @@ def create_interface():
             inputs=[query_input, translate_input],
         )
 
-        # Set up the search action
+        # Set up the search action with streaming enabled
         search_button.click(
-            fn=search_lyrics,
+            fn=search_lyrics_simple,
             inputs=[query_input, translate_input],
             outputs=[progress_output, lyrics_output, facts_output],
+            show_progress=True,  # Enable Gradio's built-in progress
         )
 
     return demo
@@ -272,7 +282,7 @@ def create_interface():
 
 # Main entry point
 if __name__ == "__main__":
-    demo = create_interface()
+    demo = create_simple_interface()
     demo.launch(
         server_name="0.0.0.0",  # Allow external access
         server_port=7860,
