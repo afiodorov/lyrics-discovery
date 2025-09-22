@@ -35,9 +35,16 @@ def find_curious_facts_node(state: AgentState) -> dict:
             response = tavily_client.search(
                 query=search_query, search_depth="basic", max_results=3
             )
-            facts_content = "\n\n".join(
-                [result["content"] for result in response["results"]]
-            )
+            results = response.get("results", [])
+            if results:
+                valid_content = [
+                    result.get("content", "")
+                    for result in results
+                    if result.get("content")
+                ]
+                facts_content = "\n\n".join(valid_content) if valid_content else None
+            else:
+                facts_content = None
             logger.info("    - Found web search results, summarizing...")
         except Exception as e:
             logger.error(f"    - ⚠️ Tavily facts search failed with error: {e}")

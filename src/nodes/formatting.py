@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 def format_lyrics_node(state: AgentState) -> dict:
     """Uses an LLM to extract and format lyrics from the single best search result."""
     # This node now receives a much cleaner, pre-filtered search result
-    search_context = "\n\n".join(state["search_results"])
+    search_context = "\n\n".join(state["search_results"] or [])
     title, artist = state["song_title"], state["song_artist"]
     logger.info("🤖 Asking the LLM to format the lyrics...")
     system_prompt = (
@@ -72,6 +72,12 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
         state["translated_lyrics"],
         state["target_language"],
     )
+
+    if not original or not translated:
+        return {
+            "error_message": "Cannot intersperse: missing original or translated lyrics"
+        }
+
     logger.info("🎨 Combining original and translated lyrics...")
     system_prompt = (
         "You are a text formatting expert. Your task is to combine original song lyrics with their translation. "

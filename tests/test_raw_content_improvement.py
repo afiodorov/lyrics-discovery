@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-
 from src.nodes.search import search_lyrics_node
 from src.state import AgentState
 

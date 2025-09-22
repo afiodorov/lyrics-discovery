@@ -36,7 +36,7 @@ def load_from_cache(query: str, language: Optional[str]) -> Optional[dict]:
             with open(cache_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            logger.error(f"Failed to load cache: {e}")
+            logger.exception(f"Failed to load cache: {e}")
     return None
 
 
@@ -49,7 +49,7 @@ def save_to_cache(query: str, language: Optional[str], results: dict):
         with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.error(f"Failed to save cache: {e}")
+        logger.exception(f"Failed to save cache: {e}")
 
 
 def search_lyrics_simple(query: str, translate_to: str):
@@ -104,6 +104,7 @@ def search_lyrics_simple(query: str, translate_to: str):
         for chunk in app.stream(initial_state):
             for node_name, node_output in chunk.items():
                 # Update accumulated result state
+                node_output = node_output or {}
                 result_state.update(node_output)
 
                 # Handle each node type (using correct node names from graph.py)
@@ -186,7 +187,7 @@ def search_lyrics_simple(query: str, translate_to: str):
         yield final_progress, current_lyrics, current_facts
 
     except Exception as e:
-        logger.error(f"Error in search_lyrics_simple: {e}")
+        logger.exception(f"Error in search_lyrics_simple: {e}")
         error_msg = f"❌ Error: {str(e)}"
         progress_log.append(error_msg)
         yield "\n".join(progress_log), current_lyrics, current_facts

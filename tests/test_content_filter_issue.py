@@ -2,7 +2,6 @@
 
 from unittest.mock import Mock, patch
 
-
 from src.nodes.formatting import format_lyrics_node
 from src.nodes.search import filter_results_node
 from src.state import AgentState

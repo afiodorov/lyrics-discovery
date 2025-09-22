@@ -10,6 +10,10 @@ logger = get_logger(__name__)
 def translate_lyrics_node(state: AgentState) -> dict:
     """Translates the lyrics to the target language."""
     lyrics, language = state["formatted_lyrics"], state["target_language"]
+
+    if not lyrics or not language:
+        return {"error_message": "Cannot translate: missing lyrics or target language"}
+
     logger.info(f"🈯 Translating lyrics to {language}...")
     system_prompt = "You are a world-class polyglot and translator. Your task is to translate the provided song lyrics into the specified target language. Retain the poetic structure and meaning as best as possible. Do not add any commentary or introductory text, only the translated lyrics."
     user_prompt = f"Please translate the following lyrics into {language}:\n\n--- LYRICS ---\n{lyrics}\n--- END OF LYRICS ---"
