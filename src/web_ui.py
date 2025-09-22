@@ -119,9 +119,7 @@ def search_lyrics_simple(query: str, translate_to: str):
                 elif node_name == "search_lyrics":
                     search_results = node_output.get("search_results")
                     if search_results:
-                        progress_log.append(
-                            f"🔎 Found {len(search_results)} sources"
-                        )
+                        progress_log.append(f"🔎 Found {len(search_results)} sources")
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
                 elif node_name == "filter_results":
@@ -129,11 +127,12 @@ def search_lyrics_simple(query: str, translate_to: str):
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
                 elif node_name == "format_lyrics":
-                    if node_output.get("formatted_lyrics"):
+                    formatted_lyrics = node_output.get("formatted_lyrics")
+                    if formatted_lyrics:
                         progress_log.append(
-                            f"🤖 Formatted lyrics ({len(node_output['formatted_lyrics'])} chars)"
+                            f"🤖 Formatted lyrics ({len(formatted_lyrics)} chars)"
                         )
-                        current_lyrics = node_output["formatted_lyrics"]
+                        current_lyrics = formatted_lyrics
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
                 elif node_name == "translate_lyrics":
@@ -142,17 +141,19 @@ def search_lyrics_simple(query: str, translate_to: str):
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
                 elif node_name == "intersperse_lyrics":
-                    if target_lang and node_output.get("interspersed_lyrics"):
+                    interspersed_lyrics = node_output.get("interspersed_lyrics")
+                    if target_lang and interspersed_lyrics:
                         progress_log.append(
                             "🎨 Combined original and translated lyrics"
                         )
-                        current_lyrics = node_output["interspersed_lyrics"]
+                        current_lyrics = interspersed_lyrics
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
                 elif node_name == "find_curious_facts":
-                    if node_output.get("curious_facts"):
+                    curious_facts = node_output.get("curious_facts")
+                    if curious_facts:
                         progress_log.append("🧐 Found curious facts")
-                        current_facts = node_output["curious_facts"]
+                        current_facts = curious_facts
                     yield "\n".join(progress_log), current_lyrics, current_facts
 
         # Check for errors
