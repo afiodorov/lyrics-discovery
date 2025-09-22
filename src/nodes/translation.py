@@ -25,7 +25,7 @@ def translate_lyrics_node(state: AgentState) -> dict:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.2,
-            max_tokens=8000,  # Increased from 4000
+            max_tokens=8192,  # Increased from 4000
         )
         translated = response.choices[0].message.content.strip()
 

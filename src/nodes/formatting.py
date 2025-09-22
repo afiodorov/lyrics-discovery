@@ -98,7 +98,7 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.0,
-            max_tokens=12000,  # Increased from 4095 (needs more space for interspersed)
+            max_tokens=8192,  # Increased from 4095 (needs more space for interspersed)
         )
         interspersed = (response.choices[0].message.content or "").strip()
 
