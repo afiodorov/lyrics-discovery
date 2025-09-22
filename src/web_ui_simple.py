@@ -58,9 +58,6 @@ def search_lyrics_simple(query: str, translate_to: str):
     Simple generator function that works with Gradio streaming.
     Yields: (progress_log, lyrics_output, facts_output)
     """
-    logger.info(
-        f"WEB UI FUNCTION CALLED: query='{query}', translate_to='{translate_to}'"
-    )
 
     if not query.strip():
         yield "Please enter a song name or description.", "", ""
@@ -70,10 +67,8 @@ def search_lyrics_simple(query: str, translate_to: str):
     target_lang = translate_to.strip() if translate_to.strip() else None
     cached = load_from_cache(query, target_lang)
     if cached:
-        logger.info(f"WEB UI: Found cached result for '{query}' - returning from cache")
         yield cached["progress"], cached["lyrics"], cached["facts"]
         return
-    logger.info(f"WEB UI: No cache found for '{query}' - proceeding with live search")
 
     # Initialize
     progress_log = []
@@ -81,10 +76,6 @@ def search_lyrics_simple(query: str, translate_to: str):
     current_facts = ""
 
     try:
-        logger.info(
-            f"WEB UI: Starting search for '{query}' with translation to '{target_lang}'"
-        )
-
         # Step 1: Start
         progress_log.append("🤔 Analyzing your request...")
         yield "\n".join(progress_log), current_lyrics, current_facts
@@ -111,17 +102,10 @@ def search_lyrics_simple(query: str, translate_to: str):
         result_state = {}
 
         # Stream through the graph execution
-        logger.info(f"WEB UI: About to start streaming...")
-        chunk_count = 0
         for chunk in app.stream(initial_state):
-            chunk_count += 1
-            logger.info(f"WEB UI: Got chunk {chunk_count}: {list(chunk.keys())}")
             for node_name, node_output in chunk.items():
                 # Update accumulated result state
                 result_state.update(node_output)
-                logger.info(
-                    f"WEB UI: Processing {node_name} with keys: {list(node_output.keys())}"
-                )
 
                 # Handle each node type (using correct node names from graph.py)
                 if node_name == "analyze_query":
@@ -201,7 +185,7 @@ def search_lyrics_simple(query: str, translate_to: str):
         yield final_progress, current_lyrics, current_facts
 
     except Exception as e:
-        logger.error(f"WEB UI: Error in search_lyrics_simple: {e}")
+        logger.error(f"Error in search_lyrics_simple: {e}")
         error_msg = f"❌ Error: {str(e)}"
         progress_log.append(error_msg)
         yield "\n".join(progress_log), current_lyrics, current_facts
@@ -269,12 +253,11 @@ def create_simple_interface():
             inputs=[query_input, translate_input],
         )
 
-        # Set up the search action with streaming enabled
+        # Set up the search action
         search_button.click(
             fn=search_lyrics_simple,
             inputs=[query_input, translate_input],
             outputs=[progress_output, lyrics_output, facts_output],
-            show_progress=True,  # Enable Gradio's built-in progress
         )
 
     return demo
