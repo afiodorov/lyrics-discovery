@@ -18,6 +18,10 @@ def search_lyrics_simple(query: str, translate_to: str):
     Simple generator function that works with Gradio streaming.
     Yields: (progress_log, lyrics_output, facts_output)
     """
+    # Handle None values
+    query = query or ""
+    translate_to = translate_to or ""
+
     if not query.strip():
         yield "Please enter a song name or description.", "", ""
         return
@@ -99,7 +103,37 @@ def search_lyrics_simple(query: str, translate_to: str):
 def create_simple_interface():
     """Create the simple Gradio interface with working URL parameters."""
 
-    with gr.Blocks(title="🎵 Lyrics Search & Translate") as demo:
+    with gr.Blocks(
+        title="🎵 Lyrics Search & Translate",
+        head="""
+        <script>
+        window.updateUrlWithSearch = function(query, translate) {
+            // Handle null/undefined values
+            query = query || '';
+            translate = translate || '';
+
+            console.log('🔗 Updating URL with:', query, translate);
+
+            // Build URL parameters
+            const params = new URLSearchParams();
+            if (query && query.trim()) {
+                params.set('q', query.trim());
+            }
+            if (translate && translate.trim()) {
+                params.set('t', translate.trim());
+            }
+
+            // Update URL without page reload
+            const newUrl = params.toString() ?
+                window.location.pathname + '?' + params.toString() :
+                window.location.pathname;
+
+            window.history.pushState({}, '', newUrl);
+            console.log('🔗 Updated URL to:', newUrl);
+        };
+        </script>
+        """,
+    ) as demo:
         gr.Markdown(
             """
             # 🎵 Lyrics Search & Translate
@@ -113,7 +147,7 @@ def create_simple_interface():
                 query_input = gr.Textbox(
                     label="Song Query",
                     placeholder="Enter song name or description",
-                    value="",  # Start empty
+                    value="Bella Ciao",
                     lines=1,
                     elem_id="query_input",
                 )
@@ -122,7 +156,7 @@ def create_simple_interface():
                 translate_input = gr.Textbox(
                     label="Translate to (optional)",
                     placeholder="e.g., 'ru', 'es', 'fr'",
-                    value="",  # Start empty
+                    value="en",
                     lines=1,
                     elem_id="translate_input",
                 )
@@ -147,12 +181,33 @@ def create_simple_interface():
                     label="🧐 Curious Facts", lines=20, interactive=False
                 )
 
+        # Hidden HTML component for JavaScript execution
+        html_output = gr.HTML(visible=False)
+
+        def search_and_update_url(query: str, translate_to: str):
+            """Search for lyrics and update URL in browser."""
+            # Handle None values
+            query = query or ""
+            translate_to = translate_to or ""
+
+            # Use the existing search generator
+            for result in search_lyrics_simple(query, translate_to):
+                yield result + ("",)  # Add empty string for the HTML output
+
         # Set up search action
         search_button.click(
-            fn=search_lyrics_simple,
+            fn=search_and_update_url,
             inputs=[query_input, translate_input],
-            outputs=[progress_output, lyrics_output, facts_output],
+            outputs=[progress_output, lyrics_output, facts_output, html_output],
             show_progress="full",
+        )
+
+        # Add JavaScript click handler to update URL
+        search_button.click(
+            fn=None,
+            inputs=[query_input, translate_input],
+            outputs=[],
+            js="(query, translate) => { console.log('Updating URL:', query, translate); window.updateUrlWithSearch(query, translate); }",
         )
 
         # Handle URL parameters and auto-search on load
@@ -171,20 +226,47 @@ def create_simple_interface():
                     if results:
                         # Get the final result
                         progress, lyrics, facts = results[-1]
-                        return query, translate, progress, lyrics, facts
+                        return query, translate, progress, lyrics, facts, ""
                     else:
-                        return query, translate, "Search completed", "", ""
+                        return query, translate, "Search completed", "", "", ""
                 else:
-                    # Just populate fields without searching
-                    return (
-                        query,
-                        translate,
-                        "Ready to search... (loaded from URL)",
-                        "",
-                        "",
+                    # No URL params - use defaults and auto-search
+                    default_query = "Bella Ciao"
+                    default_translate = "en"
+                    print(f"🔍 Auto-searching with defaults: {default_query}")
+                    results = list(
+                        search_lyrics_simple(default_query, default_translate)
                     )
+                    if results:
+                        progress, lyrics, facts = results[-1]
+                        return (
+                            default_query,
+                            default_translate,
+                            progress,
+                            lyrics,
+                            facts,
+                            "",
+                        )
+                    else:
+                        return (
+                            default_query,
+                            default_translate,
+                            "Search completed",
+                            "",
+                            "",
+                            "",
+                        )
 
-            return "", "", "Ready to search...", "", ""
+            # Fallback - use defaults and auto-search
+            default_query = "Bella Ciao"
+            default_translate = "en"
+            print(f"🔍 Auto-searching with defaults: {default_query}")
+            results = list(search_lyrics_simple(default_query, default_translate))
+            if results:
+                progress, lyrics, facts = results[-1]
+                return default_query, default_translate, progress, lyrics, facts, ""
+            else:
+                return default_query, default_translate, "Search completed", "", "", ""
 
         # Set up load handler to populate fields and auto-search from URL
         demo.load(
@@ -196,6 +278,7 @@ def create_simple_interface():
                 progress_output,
                 lyrics_output,
                 facts_output,
+                html_output,
             ],
         )
 
