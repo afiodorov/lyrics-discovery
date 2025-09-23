@@ -1,6 +1,11 @@
 """Search and filtering nodes for finding lyrics."""
 
-from ..config import deepseek_client, tavily_client
+from ..config import (
+    cache_search_results,
+    deepseek_client,
+    get_cached_search,
+    tavily_search,
+)
 from ..logging_config import get_logger
 from ..state import AgentState, log_debug_state
 
@@ -17,27 +22,49 @@ def search_lyrics_node(state: AgentState) -> dict:
         f" by {artist}" if artist else ""
     )
     try:
-        response = tavily_client.search(
-            query=query,
-            search_depth="advanced",
-            max_results=5,
-            include_raw_content="text",  # Get full page content instead of snippets
-        )
+        # Check cache first
+        cached_results = get_cached_search(query)
+        if cached_results:
+            logger.debug(
+                f"    - Using cached search results ({len(cached_results.get('results', []))} results)"
+            )
+            content = cached_results.get("content", [])
+            update = {"search_results": content}
+            log_debug_state("search_lyrics_node (cached)", {**state, **update})
+            return update
+
+        # Use LangChain's TavilySearch tool
+        search_response = tavily_search.invoke(query)
+
+        # Extract content from results - TavilySearch returns a dict with 'results' key
         # Prefer raw_content over content snippets when available
         content = []
-        for result in response["results"]:
+        results = search_response.get("results", [])
+        for result in results:
             if result.get("raw_content"):
                 # Use full page content
-                content.append(result["raw_content"])
+                text = result["raw_content"]
+                content.append(text)
                 logger.debug(
-                    f"    - Using raw content ({len(result['raw_content'])} chars) from {result.get('url', 'unknown')}"
+                    f"    - Using raw content ({len(text)} chars) from {result.get('url', 'unknown')}"
                 )
             else:
                 # Fallback to snippet
-                content.append(result["content"])
-                logger.debug(
-                    f"    - Using content snippet ({len(result['content'])} chars) from {result.get('url', 'unknown')}"
-                )
+                text = result.get("content", "")
+                if text:
+                    content.append(text)
+                    logger.debug(
+                        f"    - Using content snippet ({len(text)} chars) from {result.get('url', 'unknown')}"
+                    )
+
+        if not content:
+            logger.warning("    - No results found from Tavily search")
+            return {"search_results": []}
+
+        # Cache the results
+        cache_data = {"results": search_response.get("results", []), "content": content}
+        cache_search_results(query, cache_data)
+
         update = {"search_results": content}
         log_debug_state("search_lyrics_node", {**state, **update})
         return update
@@ -75,16 +102,13 @@ def filter_results_node(state: AgentState) -> dict:
     )
 
     try:
-        response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.0,
-            max_tokens=8192,
-        )
-        best_result = (response.choices[0].message.content or "").strip()
+        # Use LangChain's ChatOpenAI for DeepSeek
+        messages = [
+            ("system", system_prompt),
+            ("user", user_prompt),
+        ]
+        response = deepseek_client.invoke(messages)
+        best_result = (response.content or "").strip()
 
         if "No suitable source found" in best_result:
             # Fallback: just combine all results and let the format node handle it

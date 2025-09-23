@@ -27,19 +27,17 @@ def format_lyrics_node(state: AgentState) -> dict:
         "Format the lyrics with proper line breaks and stanza separation."
     )
     try:
-        response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.0,
-            max_tokens=8192,  # Increased from 4000
-        )
-        formatted = (response.choices[0].message.content or "").strip()
+        # Use LangChain's ChatOpenAI for DeepSeek
+        messages = [
+            ("system", system_prompt),
+            ("user", user_prompt),
+        ]
+        response = deepseek_client.invoke(messages, max_tokens=8192)
+        formatted = (response.content or "").strip()
 
         # Check for potential truncation
-        finish_reason = response.choices[0].finish_reason
+        # Note: LangChain responses have response_metadata with finish_reason
+        finish_reason = response.response_metadata.get("finish_reason", "stop")
         if finish_reason == "length":
             logger.warning(
                 "    - ⚠️ WARNING: Response was truncated due to token limit!"
@@ -91,19 +89,17 @@ def intersperse_lyrics_node(state: AgentState) -> dict:
         "Combine them now."
     )
     try:
-        response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.0,
-            max_tokens=8192,  # Increased from 4095 (needs more space for interspersed)
-        )
-        interspersed = (response.choices[0].message.content or "").strip()
+        # Use LangChain's ChatOpenAI for DeepSeek
+        messages = [
+            ("system", system_prompt),
+            ("user", user_prompt),
+        ]
+        response = deepseek_client.invoke(messages, max_tokens=8192)
+        interspersed = (response.content or "").strip()
 
         # Check for potential truncation
-        finish_reason = response.choices[0].finish_reason
+        # Note: LangChain responses have response_metadata with finish_reason
+        finish_reason = response.response_metadata.get("finish_reason", "stop")
         if finish_reason == "length":
             logger.warning(
                 "    - ⚠️ WARNING: Interspersed lyrics were truncated due to token limit!"

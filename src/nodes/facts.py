@@ -2,7 +2,7 @@
 
 import wikipedia
 
-from ..config import llm_client, tavily_client
+from ..config import llm_client, tavily_search
 from ..logging_config import get_logger
 from ..state import AgentState, log_debug_state
 
@@ -32,10 +32,9 @@ def find_curious_facts_node(state: AgentState) -> dict:
             search_query = f"interesting facts about the song '{title}'" + (
                 f" by '{artist}'" if artist else ""
             )
-            response = tavily_client.search(
-                query=search_query, search_depth="basic", max_results=3
-            )
-            results = response.get("results", [])
+            # Use LangChain's TavilySearch tool
+            search_response = tavily_search.invoke(search_query)
+            results = search_response.get("results", [])
             if results:
                 valid_content = [
                     result.get("content", "")
@@ -61,15 +60,13 @@ def find_curious_facts_node(state: AgentState) -> dict:
             "bulleted list. If no interesting facts can be found, respond with 'No specific facts found.'"
         )
         user_prompt = f"Extract 1-3 curious facts from this article about '{title}':\n\n{facts_content[:4000]}"
-        response = llm_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.0,
-        )
-        facts = (response.choices[0].message.content or "").strip()
+        # Use LangChain's ChatOpenAI
+        messages = [
+            ("system", system_prompt),
+            ("user", user_prompt),
+        ]
+        response = llm_client.invoke(messages)
+        facts = (response.content or "").strip()
         if "No specific facts found" in facts:
             return {}
 
@@ -113,20 +110,16 @@ def _detect_song_language(state: AgentState, title: str, artist: str) -> str | N
             "If you cannot determine or it's English, respond with 'English'."
         )
 
-        response = llm_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": prompt},
-                {
-                    "role": "user",
-                    "content": f"Song: '{title}' by {artist}\n\nLyrics excerpt:\n{lyrics_snippet}",
-                },
-            ],
-            temperature=0.0,
-            max_tokens=50,
-        )
-
-        detected = (response.choices[0].message.content or "").strip()
+        # Use LangChain's ChatOpenAI
+        messages = [
+            ("system", prompt),
+            (
+                "user",
+                f"Song: '{title}' by {artist}\n\nLyrics excerpt:\n{lyrics_snippet}",
+            ),
+        ]
+        response = llm_client.invoke(messages, max_tokens=50)
+        detected = (response.content or "").strip()
         logger.debug(f"    - Detected language: {detected}")
         return detected
 
@@ -146,16 +139,13 @@ def _translate_facts(facts: str, target_language: str, title: str) -> str:
             "Only translate the text, keep any formatting like bullet points or dashes."
         )
 
-        response = llm_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": facts},
-            ],
-            temperature=0.0,
-        )
-
-        translated_facts = (response.choices[0].message.content or "").strip()
+        # Use LangChain's ChatOpenAI
+        messages = [
+            ("system", system_prompt),
+            ("user", facts),
+        ]
+        response = llm_client.invoke(messages)
+        translated_facts = (response.content or "").strip()
         logger.debug("    - Facts translated successfully")
         return translated_facts
 

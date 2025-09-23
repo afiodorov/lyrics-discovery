@@ -183,18 +183,6 @@ def create_simple_interface():
                     label="🧐 Curious Facts", lines=20, interactive=False
                 )
 
-        # Examples
-        gr.Examples(
-            examples=[
-                ["Bella Ciao", "en"],
-                ["Gracias a la vida", "ru"],
-                ["Yesterday by Beatles", "es"],
-                ["Imagine John Lennon", "fr"],
-                ["that song that goes 'we will rock you'", ""],
-            ],
-            inputs=[query_input, translate_input],
-        )
-
         # Set up the search action with streaming
         search_button.click(
             fn=search_lyrics_simple,

@@ -18,19 +18,18 @@ def translate_lyrics_node(state: AgentState) -> dict:
     system_prompt = "You are a world-class polyglot and translator. Your task is to translate the provided song lyrics into the specified target language. Retain the poetic structure and meaning as best as possible. Do not add any commentary or introductory text, only the translated lyrics."
     user_prompt = f"Please translate the following lyrics into {language}:\n\n--- LYRICS ---\n{lyrics}\n--- END OF LYRICS ---"
     try:
-        response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.2,
-            max_tokens=8192,  # Increased from 4000
-        )
-        translated = response.choices[0].message.content.strip()
+        # Use LangChain's ChatOpenAI for DeepSeek
+        messages = [
+            ("system", system_prompt),
+            ("user", user_prompt),
+        ]
+        # Create a new client with specific temperature for translation
+        translator = deepseek_client.with_config(configurable={"temperature": 0.2})
+        response = translator.invoke(messages, max_tokens=8192)
+        translated = response.content.strip()
 
         # Check for potential truncation
-        finish_reason = response.choices[0].finish_reason
+        finish_reason = response.response_metadata.get("finish_reason", "stop")
         if finish_reason == "length":
             logger.warning(
                 "    - ⚠️ WARNING: Translation was truncated due to token limit!"
