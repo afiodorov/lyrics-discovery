@@ -58,8 +58,7 @@ def search_lyrics_simple(query: str, translate_to: str):
             node_messages = {
                 "analyze_query": "🤔 Analyzing your request...",
                 "search_lyrics": "🔍 Searching for lyrics...",
-                "filter_results": "📋 Filtering search results...",
-                "format_lyrics": "✨ Formatting lyrics...",
+                "extract_lyrics": "✨ Extracting and formatting lyrics...",
                 "translate_lyrics": f"🌍 Translating to {target_lang}...",
                 "intersperse_lyrics": "🎨 Combining original and translated lyrics...",
                 "find_curious_facts": "🧐 Finding curious facts...",
@@ -257,17 +256,6 @@ def create_simple_interface():
                             "",
                             "",
                         )
-
-            # Fallback - use defaults and auto-search
-            default_query = "Bella Ciao"
-            default_translate = "en"
-            print(f"🔍 Auto-searching with defaults: {default_query}")
-            results = list(search_lyrics_simple(default_query, default_translate))
-            if results:
-                progress, lyrics, facts = results[-1]
-                return default_query, default_translate, progress, lyrics, facts, ""
-            else:
-                return default_query, default_translate, "Search completed", "", "", ""
 
         # Set up load handler to populate fields and auto-search from URL
         demo.load(

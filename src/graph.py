@@ -1,12 +1,12 @@
 """Graph construction and conditional logic for the lyrics search agent."""
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from .nodes import (
     analyze_query_node,
-    filter_results_node,
+    extract_lyrics_node,
     find_curious_facts_node,
-    format_lyrics_node,
     intersperse_lyrics_node,
     search_lyrics_node,
     translate_lyrics_node,
@@ -19,16 +19,7 @@ def should_continue_after_search(state: AgentState) -> str:
     return (
         "end_with_error"
         if state.get("error_message") or not state.get("search_results")
-        else "filter_results"
-    )
-
-
-def should_format_lyrics(state: AgentState) -> str:
-    """Determines whether to format lyrics or end with error."""
-    return (
-        "end_with_error"
-        if state.get("error_message") or not state.get("search_results")
-        else "format_lyrics"
+        else "extract_lyrics"
     )
 
 
@@ -43,15 +34,14 @@ def should_translate(state: AgentState) -> str:
     )
 
 
-def create_workflow() -> StateGraph:
+def create_workflow() -> CompiledStateGraph:
     """Creates and configures the LangGraph workflow."""
     workflow = StateGraph(AgentState)
 
     # Add all nodes
     workflow.add_node("analyze_query", analyze_query_node)
     workflow.add_node("search_lyrics", search_lyrics_node)
-    workflow.add_node("filter_results", filter_results_node)
-    workflow.add_node("format_lyrics", format_lyrics_node)
+    workflow.add_node("extract_lyrics", extract_lyrics_node)  # Combined filter+format
     workflow.add_node("translate_lyrics", translate_lyrics_node)
     workflow.add_node("intersperse_lyrics", intersperse_lyrics_node)
     workflow.add_node("find_curious_facts", find_curious_facts_node)
@@ -66,15 +56,10 @@ def create_workflow() -> StateGraph:
     workflow.add_conditional_edges(
         "search_lyrics",
         should_continue_after_search,
-        {"filter_results": "filter_results", "end_with_error": END},
+        {"extract_lyrics": "extract_lyrics", "end_with_error": END},
     )
     workflow.add_conditional_edges(
-        "filter_results",
-        should_format_lyrics,
-        {"format_lyrics": "format_lyrics", "end_with_error": END},
-    )
-    workflow.add_conditional_edges(
-        "format_lyrics",
+        "extract_lyrics",
         should_translate,
         {
             "translate_lyrics": "translate_lyrics",

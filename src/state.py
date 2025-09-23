@@ -11,7 +11,7 @@ class AgentState(TypedDict):
     """State object that flows through the agent graph."""
 
     user_query: str
-    target_language: str
+    target_language: str | None
     song_title: str
     song_artist: str
     search_results: List[str]

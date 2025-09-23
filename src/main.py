@@ -91,9 +91,8 @@ def main():
         )
         return
 
-    # Create and compile the workflow
-    workflow = create_workflow()
-    app = workflow.compile()
+    # Create the workflow (already compiled)
+    app = create_workflow()
 
     # Set initial state (no more debug_mode needed)
     initial_state = {
@@ -101,7 +100,11 @@ def main():
         "target_language": args.translate,
     }
 
-    # Run the agent
+    # Run the agent - nodes will log their own timing
+    print("\n⏱️  Running search (watch for timing in logs)...")
+    print("-" * 50)
+
+    # Use verbose logging to see timings
     final_state = app.invoke(initial_state)
 
     # Display results
