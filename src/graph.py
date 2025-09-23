@@ -88,4 +88,5 @@ def create_workflow() -> StateGraph:
     workflow.add_edge("intersperse_lyrics", "find_curious_facts")
     workflow.add_edge("find_curious_facts", END)
 
-    return workflow
+    # Compile the workflow to get a runnable app
+    return workflow.compile()
