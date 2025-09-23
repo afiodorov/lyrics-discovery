@@ -1,5 +1,6 @@
 """Fixed Gradio web UI with proper URL parameter handling and sharing."""
 
+import os
 from typing import Optional
 
 import gradio as gr
@@ -296,4 +297,8 @@ if __name__ == "__main__":
     print("  • Redis caching for fast repeated searches")
     print("  • Advanced Tavily search with raw content")
     print()
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=int(os.environ.get("PORT", 7860)),
+        share=False,
+    )
