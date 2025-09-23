@@ -245,32 +245,5 @@ def test_language_detection_with_none_lyrics(mock_all_apis):
     assert len(outputs) > 0
 
 
-def test_cache_functionality():
-    """Test that caching works properly."""
-    from src.web_ui import get_cache_key, load_from_cache, save_to_cache
-
-    query = "test song"
-    language = "en"
-    test_results = {
-        "progress": "Test progress",
-        "lyrics": "Test lyrics",
-        "facts": "Test facts",
-    }
-
-    # Test cache key generation
-    cache_key = get_cache_key(query, language)
-    assert isinstance(cache_key, str)
-    assert len(cache_key) == 32  # MD5 hash length
-
-    # Test saving and loading
-    save_to_cache(query, language, test_results)
-    loaded = load_from_cache(query, language)
-
-    assert loaded is not None
-    assert loaded["progress"] == test_results["progress"]
-    assert loaded["lyrics"] == test_results["lyrics"]
-    assert loaded["facts"] == test_results["facts"]
-
-
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -1,9 +1,6 @@
 """Simple working Gradio web UI with proper streaming."""
 
-import hashlib
-import json
 import os
-from pathlib import Path
 from typing import Optional
 
 import gradio as gr
@@ -16,42 +13,6 @@ from .state import AgentState
 setup_logging("normal")
 logger = get_logger(__name__)
 
-# Cache directory
-CACHE_DIR = Path(".cache/lyrics_search")
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def get_cache_key(query: str, language: Optional[str]) -> str:
-    """Generate a cache key for the query and language combination."""
-    cache_str = f"{query}:{language or 'none'}"
-    return hashlib.md5(cache_str.encode()).hexdigest()
-
-
-def load_from_cache(query: str, language: Optional[str]) -> Optional[dict]:
-    """Load results from cache if they exist."""
-    cache_key = get_cache_key(query, language)
-    cache_file = CACHE_DIR / f"{cache_key}.json"
-
-    if cache_file.exists():
-        try:
-            with open(cache_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.exception(f"Failed to load cache: {e}")
-    return None
-
-
-def save_to_cache(query: str, language: Optional[str], results: dict):
-    """Save results to cache."""
-    cache_key = get_cache_key(query, language)
-    cache_file = CACHE_DIR / f"{cache_key}.json"
-
-    try:
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.exception(f"Failed to save cache: {e}")
-
 
 def search_lyrics_simple(query: str, translate_to: str):
     """
@@ -63,14 +24,8 @@ def search_lyrics_simple(query: str, translate_to: str):
         yield "Please enter a song name or description.", "", ""
         return
 
-    # Check cache first
-    target_lang = translate_to.strip() if translate_to.strip() else None
-    cached = load_from_cache(query, target_lang)
-    if cached:
-        yield cached["progress"], cached["lyrics"], cached["facts"]
-        return
-
     # Initialize
+    target_lang = translate_to.strip() if translate_to.strip() else None
     progress_log = []
     current_lyrics = ""
     current_facts = ""
@@ -162,28 +117,12 @@ def search_lyrics_simple(query: str, translate_to: str):
             error_msg = f"❌ Error: {result_state['error_message']}"
             progress_log.append(error_msg)
             final_progress = "\n".join(progress_log)
-            save_to_cache(
-                query,
-                target_lang,
-                {"progress": final_progress, "lyrics": "", "facts": ""},
-            )
             yield final_progress, "", ""
             return
 
         # Add completion message and make final yield
         progress_log.append("✅ Complete!")
         final_progress = "\n".join(progress_log)
-
-        # Cache the results
-        save_to_cache(
-            query,
-            target_lang,
-            {
-                "progress": final_progress,
-                "lyrics": current_lyrics,
-                "facts": current_facts,
-            },
-        )
 
         yield final_progress, current_lyrics, current_facts
 

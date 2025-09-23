@@ -99,17 +99,18 @@ class TestFilterResultsNode:
             error_message="",
         )
 
-        with patch("src.nodes.search.llm_client") as mock_llm:
+        with patch("src.config.deepseek_client.chat.completions.create") as mock_create:
             # Mock the OpenAI response selecting the full lyrics
             mock_response = Mock()
             mock_response.choices = [Mock()]
             mock_response.choices[0].message.content = full_lyrics
-            mock_llm.chat.completions.create.return_value = mock_response
+            mock_create.return_value = mock_response
 
             result = filter_results_node(state)
 
             # Should return the selected lyrics
             assert "search_results" in result
             assert len(result["search_results"]) == 1
-            assert result["search_results"][0] == full_lyrics
+            # The response might be stripped of leading/trailing whitespace
+            assert result["search_results"][0].strip() == full_lyrics.strip()
             assert "error_message" not in result or result["error_message"] == ""

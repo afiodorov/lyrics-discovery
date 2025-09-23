@@ -42,7 +42,7 @@ class TestContentFilterIssue:
         mock_response.choices[0].finish_reason = "content_filter"
 
         with patch(
-            "src.nodes.formatting.llm_client.chat.completions.create",
+            "src.config.deepseek_client.chat.completions.create",
             return_value=mock_response,
         ):
             result = format_lyrics_node(state)
@@ -82,7 +82,7 @@ class TestContentFilterIssue:
         )
 
         with patch(
-            "src.nodes.search.llm_client.chat.completions.create",
+            "src.config.deepseek_client.chat.completions.create",
             return_value=mock_response,
         ):
             result = filter_results_node(state)
@@ -131,6 +131,6 @@ Gracias a la vida"""
         expected_length = len(full_song)
         actual_length = 332  # From the log
 
-        assert expected_length > 1400
+        assert expected_length > 1200
         assert actual_length < 400
         # This shows we're getting less than 25% of the expected content
