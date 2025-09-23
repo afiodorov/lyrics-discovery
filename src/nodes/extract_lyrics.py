@@ -23,8 +23,29 @@ def extract_lyrics_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     logger.info("🔍 Extracting lyrics from search results...")
 
-    # Prepare the combined prompt
-    search_context = "\n\n---SOURCE---\n\n".join(search_results[:5])  # Limit to top 5
+    # Prepare the combined prompt - combine first, then truncate if needed
+    search_context = "\n\n---SOURCE---\n\n".join(search_results[:5])
+
+    # Log original size
+    original_chars = len(search_context)
+    logger.debug(
+        f"Original search context: {original_chars} characters from {len(search_results[:5])} sources"
+    )
+
+    # Truncate combined content if too large
+    # Model limit is 131072 tokens, roughly ~4 chars per token, minus prompt overhead
+    max_context_chars = 120000  # ~30k tokens for search content, rest for prompt
+    if len(search_context) > max_context_chars:
+        search_context = (
+            search_context[:max_context_chars]
+            + "\n\n...[Content truncated due to size limits]"
+        )
+        logger.warning(
+            f"Search context truncated from {original_chars} to {len(search_context)} chars"
+        )
+
+    # Final size check
+    logger.debug(f"Final search context: {len(search_context)} characters")
 
     prompt = f"""You are a lyrics extraction expert. Given search results for the song "{song_title}" by {song_artist},
 extract and format the complete lyrics.
