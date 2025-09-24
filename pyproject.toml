@@ -22,3 +22,6 @@ find-lyrics-graph = "lyrics_graph:main"
 dev = [
     "ruff>=0.13.1",
 ]
+
+[tool.setuptools.package-data]
+"src.resources" = ["*.txt"]

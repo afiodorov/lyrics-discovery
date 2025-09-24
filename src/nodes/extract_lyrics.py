@@ -64,7 +64,7 @@ Return ONLY the formatted lyrics, nothing else. If no lyrics are found, return "
 
     try:
         response = deepseek_client.invoke(prompt)
-        formatted_lyrics = response.content.strip()
+        formatted_lyrics = (response.content or "").strip()
 
         if formatted_lyrics == "LYRICS_NOT_FOUND":
             logger.warning("Could not extract lyrics from search results")

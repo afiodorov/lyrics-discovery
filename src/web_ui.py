@@ -1,12 +1,18 @@
 """Fixed Gradio web UI with proper URL parameter handling and sharing."""
 
 import os
-from typing import Optional
 
 import gradio as gr
 
 from .graph import create_workflow
 from .logging_config import get_logger, setup_logging
+from .resources.defaults import (
+    get_default_facts,
+    get_default_language,
+    get_default_lyrics,
+    get_default_progress,
+    get_default_query,
+)
 from .state import AgentState
 
 # Set up logging
@@ -147,7 +153,7 @@ def create_simple_interface():
                 query_input = gr.Textbox(
                     label="Song Query",
                     placeholder="Enter song name or description",
-                    value="Bella Ciao",
+                    value=get_default_query(),
                     lines=1,
                     elem_id="query_input",
                 )
@@ -156,7 +162,7 @@ def create_simple_interface():
                 translate_input = gr.Textbox(
                     label="Translate to (optional)",
                     placeholder="e.g., 'ru', 'es', 'fr'",
-                    value="en",
+                    value=get_default_language(),
                     lines=1,
                     elem_id="translate_input",
                 )
@@ -230,32 +236,23 @@ def create_simple_interface():
                     else:
                         return query, translate, "Search completed", "", "", ""
                 else:
-                    # No URL params - use defaults and auto-search
-                    default_query = "Bella Ciao"
-                    default_translate = "en"
-                    print(f"🔍 Auto-searching with defaults: {default_query}")
-                    results = list(
-                        search_lyrics_simple(default_query, default_translate)
+                    # No URL params - use pre-computed defaults from resource files
+                    default_query = get_default_query()
+                    default_translate = get_default_language()
+                    default_progress = get_default_progress()
+                    default_lyrics = get_default_lyrics()
+                    default_facts = get_default_facts()
+
+                    print(f"📎 Loading pre-computed defaults for: {default_query}")
+
+                    return (
+                        default_query,
+                        default_translate,
+                        default_progress,
+                        default_lyrics,
+                        default_facts,
+                        "",
                     )
-                    if results:
-                        progress, lyrics, facts = results[-1]
-                        return (
-                            default_query,
-                            default_translate,
-                            progress,
-                            lyrics,
-                            facts,
-                            "",
-                        )
-                    else:
-                        return (
-                            default_query,
-                            default_translate,
-                            "Search completed",
-                            "",
-                            "",
-                            "",
-                        )
 
         # Set up load handler to populate fields and auto-search from URL
         demo.load(
