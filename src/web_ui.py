@@ -96,9 +96,10 @@ def search_lyrics_simple(query: str, translate_to: str):
                 return
 
     except Exception as e:
+        logger.exception("Error occured in the flow")
         error_msg = f"❌ An error occurred: {str(e)}"
         progress_log.append(error_msg)
-        yield "\n".join(progress_log), "", ""
+        yield "\n".join(progress_log), current_lyrics, current_facts
         return
 
     # Final update
