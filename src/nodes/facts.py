@@ -48,10 +48,11 @@ def find_curious_facts_node(state: AgentState) -> dict:
         except Exception as e:
             logger.exception(f"    - ⚠️ Tavily facts search failed with error: {e}")
             logger.warning("    - Web search for facts also failed.")
-            return {}
+            return state
 
     if not facts_content:
-        return {}
+        logger.info("    - No facts content found")
+        return state
 
     try:
         system_prompt = (
@@ -68,7 +69,8 @@ def find_curious_facts_node(state: AgentState) -> dict:
         response = llm_client.invoke(messages)
         facts = (response.content or "").strip()
         if "No specific facts found" in facts:
-            return {}
+            logger.info("    - LLM reported no specific facts found")
+            return state
 
         # Translate facts if target language is specified
         if state.get("target_language"):
@@ -88,7 +90,7 @@ def find_curious_facts_node(state: AgentState) -> dict:
     except Exception as e:
         logger.exception(f"    - ⚠️ LLM fact extraction failed with error: {e}")
         logger.warning("    - An error occurred during LLM fact extraction.")
-        return {}
+        return state
 
 
 def _detect_song_language(state: AgentState, title: str, artist: str) -> str | None:

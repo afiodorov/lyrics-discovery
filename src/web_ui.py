@@ -60,6 +60,13 @@ def search_lyrics_simple(query: str, translate_to: str):
             node_name = list(event.keys())[0]
             result_state = event[node_name]
 
+            # Skip if state is None (can happen when node fails)
+            if result_state is None:
+                logger.warning(
+                    f"Node '{node_name}' returned None state - skipping processing"
+                )
+                continue
+
             # Map node names to user-friendly messages
             node_messages = {
                 "analyze_query": "🤔 Analyzing your request...",
